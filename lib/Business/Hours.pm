@@ -9,7 +9,7 @@ use Time::Local qw/timelocal_nocheck/;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.04;
+	$VERSION     = 0.05;
 	@ISA         = qw (Exporter);
 	#Give a hoot don't pollute, do not export more than needed by default
 	@EXPORT      = qw ();
@@ -140,17 +140,17 @@ Takes a hash of the form :
 
 {
     0 => { Name => 'Sunday',
-            Start => 'HH::MM',
-               End => 'HH::MM'},
+            Start => 'HH:MM',
+               End => 'HH:MM'},
 
     1 => { Name => 'Monday',
-            Start => 'HH::MM',
-               End => 'HH::MM'},
+            Start => 'HH:MM',
+               End => 'HH:MM'},
     ....
 
     6 => { Name => 'Saturday',
-            Start => 'HH::MM',
-               End => 'HH::MM'},
+            Start => 'HH:MM',
+               End => 'HH:MM'},
     };
 
     Start and end times are of the form HH:MM.  Valid times are
@@ -475,6 +475,10 @@ sub add_seconds {
 	    return -1;
 	}
 	$hours = $self->for_timespan(Start => $start, End => $end);
+
+        # if there's a problem, exit
+        return -1 if !$hours->last;
+
 	$end = $end + $period;
     }
 

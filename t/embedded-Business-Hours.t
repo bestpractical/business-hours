@@ -1,4 +1,4 @@
-#!perl -w
+#!/usr/bin/perl -w
 
 use Test::More 'no_plan';
 
@@ -48,6 +48,64 @@ is(cardinality $hours_span, (45 * 60 * 60));
 
 
 
+
+
+    undef $main::_STDOUT_;
+    undef $main::_STDERR_;
+}
+
+{
+    undef $main::_STDOUT_;
+    undef $main::_STDERR_;
+#line 378 lib/Business/Hours.pm
+
+use_ok  (Business::Hours);
+my $hours = Business::Hours->new();
+my $time;
+
+# pick a date that's during business hours
+# Thu Jan 01 15:00:00 1970
+$time = $hours->first_after( 20 * 60 * 60);
+is($time, (20 * 60 * 60));
+
+# pick a date that's not during business hours
+my ($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime(0);
+$time = $hours->first_after( 0 );
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time);
+is($wday, $xwday+1);
+is($hour, 9);
+is($min, 0);
+is($sec, 0);
+
+
+    undef $main::_STDOUT_;
+    undef $main::_STDERR_;
+}
+
+{
+    undef $main::_STDOUT_;
+    undef $main::_STDERR_;
+#line 433 lib/Business/Hours.pm
+
+use_ok  (Business::Hours);
+my $hours = Business::Hours->new();
+
+my ($start, $time, $span);
+# pick a date that's during business hours
+$start = (20 * 60 * 60);
+$time = $hours->add_seconds( $start, 30 * 60);
+$span = $hours->for_timespan(Start => $start, End => $time);
+
+# the first second is a business second, too
+is(cardinality $span, (30 * 60)+1);
+
+# pick a date that's not during business hours
+$start = 0;
+$time = $hours->add_seconds( $start, 30 * 60);
+$span = $hours->for_timespan(Start => $start, End => $time);
+
+# the first second is a business second, too
+is(cardinality $span, (30 * 60)+1);
 
 
     undef $main::_STDOUT_;
