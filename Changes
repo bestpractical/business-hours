@@ -1,5 +1,8 @@
 Revision history for Perl module Business::Hours
 
+0.03 April 1 2003
+        - fixed a bug in between
+
 0.02 Feb 20 2003
         - added "between" as a method, as well as a testsuite
 
