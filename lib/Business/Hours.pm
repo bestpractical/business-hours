@@ -9,7 +9,7 @@ use Time::Local qw/timelocal_nocheck/;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.01;
+	$VERSION     = 0.02;
 	@ISA         = qw (Exporter);
 	#Give a hoot don't pollute, do not export more than needed by default
 	@EXPORT      = qw ();
@@ -159,6 +159,12 @@ Takes a hash of the form :
     and end time OR may declare both Start and End to be undef, if
     there are no valid hours on that day.
 
+    Note that the ending time is really "what is the first minute we're closed.
+    If you specifiy an "End" of 18:00, that means that at 6pm, you are closed.
+    The last business second was 17:59:59. 
+
+
+
 =cut
 
 sub business_hours {
@@ -181,9 +187,18 @@ Returns a Set::IntSpan of business hours for this period of time.
 
 =begin testing
 
-use Business::Hours;
+use_ok  (Business::Hours);
 my $hours = Business::Hours->new();
-my $hours_span = $hours->for_timespan(Start => time(), End => (time() + (86400 * 14)));
+is(ref($hours), 'Business::Hours');
+# how many business hours were there in the first week.
+my $hours_span = $hours->for_timespan(Start => '0', End => ( (86400 * 7)));
+is(ref($hours_span), 'Set::IntSpan');
+
+# Are there 45 working hours
+
+is(cardinality $hours_span, (45 * 60 * 60));
+
+
 
 
 =end testing
@@ -267,6 +282,7 @@ sub for_timespan {
                                                  ( $this_week_start[3] + $dow ),
                                                  $this_week_start[4],
                                                  $this_week_start[5] );
+
                 my $day_bizhours_end = timelocal_nocheck(0,
                                                  $day_hours->{'EndMinute'},
                                                  $day_hours->{'EndHour'},
@@ -274,13 +290,17 @@ sub for_timespan {
                                                  $this_week_start[4],
                                                  $this_week_start[5] );
 
+                # We subtract 1 from the ending time, because the ending time
+                # really specifies what hour we end up closed at
+                $day_bizhours_end--;
+
                 push (@run_list , "$day_bizhours_start-$day_bizhours_end");
 
             }
 
 
         }
-
+        
 
         # now that we're done with this week, calculate the start of the next week
         # the next week starts at midnight on the sunday following the previous
@@ -302,12 +322,50 @@ sub for_timespan {
 
     # TODO: Add any special times to the business hours
 
+
+
+    # cache the calculated business hours in the object
+    $self->{'calculated'} =  $business_hours_in_period;
+    $self->{'start'} = $args{'Start'};
+    $self->{'end'} = $args{'End'};
     # Return the intspan of business hours.
+
+        
 
     return ($business_hours_in_period);
 
 }
 
+
+=head2 between START, END
+
+Returns the number of business seconds between START and END
+Both Start and End should be specified in Seconds since the Epoch
+
+Returns -1 if Start or End is outside the calculated business hours
+
+=cut
+
+
+sub between {
+    my $self = shift;
+    my $start = shift;
+    my $end = shift;
+
+    if ($start < $self->{'start'}) {
+        return (-1);
+    } 
+    if ($end > $self->{'end'}) {
+        return(-1);
+    }
+
+    my $period = Set::IntSpan($start."-".$end);
+    my $intersection = intersect $period $self->{'calculated'};
+
+    return cardinality $intersection;
+
+
+}
 
 
 

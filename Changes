@@ -1,5 +1,8 @@
 Revision history for Perl module Business::Hours
 
+0.02 Feb 20 2003
+        - added "between" as a method, as well as a testsuite
+
 0.01 Tue Feb 11 14:58:20 2003
 	- original version; created by ExtUtils::ModuleMaker 0.31229
 

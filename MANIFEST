@@ -5,3 +5,4 @@ Todo
 Changes
 lib/Business/Hours.pm
 Makefile.PL
+t/embedded-Business-Hours.t
