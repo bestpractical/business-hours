@@ -9,7 +9,7 @@ use Time::Local qw/timelocal_nocheck/;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.05;
+	$VERSION     = 0.06;
 	@ISA         = qw (Exporter);
 	#Give a hoot don't pollute, do not export more than needed by default
 	@EXPORT      = qw ();
@@ -380,15 +380,34 @@ use_ok  (Business::Hours);
 my $hours = Business::Hours->new();
 my $time;
 
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst);
+my $starttime;
+
 # pick a date that's during business hours
-# Thu Jan 01 15:00:00 1970
-$time = $hours->first_after( 20 * 60 * 60);
-is($time, (20 * 60 * 60));
+$starttime = 0;
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
+while ($wday == 0  || $wday == 6) {
+    $starttime += ( 24 * 60 * 60);
+    ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
+}
+while ( $hour < 9 || $hour >= 18 ) {
+    $starttime += ( 4 * 60);
+    ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
+}
+
+$time = $hours->first_after( $starttime );
+is($time, ( $starttime ));
 
 # pick a date that's not during business hours
-my ($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime(0);
-$time = $hours->first_after( 0 );
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time);
+$starttime = 0;
+($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime($starttime);
+while ( $xwday != 0 ) {
+    $starttime += ( 24 * 60 * 60);
+    ($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime($starttime);
+}
+
+$time = $hours->first_after( $starttime );
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time);
 is($wday, $xwday+1);
 is($hour, 9);
 is($min, 0);
