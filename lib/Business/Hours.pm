@@ -9,7 +9,7 @@ use Time::Local qw/timelocal_nocheck/;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.03;
+	$VERSION     = 0.04;
 	@ISA         = qw (Exporter);
 	#Give a hoot don't pollute, do not export more than needed by default
 	@EXPORT      = qw ();
@@ -364,6 +364,124 @@ sub between {
 
     return cardinality $intersection;
 
+
+}
+
+
+=head2 first_after START
+
+Returns START if START is within business hours
+Otherwise, returns the next business second after START
+START should be specified in Seconds since the Epoch
+
+=begin testing
+
+use_ok  (Business::Hours);
+my $hours = Business::Hours->new();
+my $time;
+
+# pick a date that's during business hours
+# Thu Jan 01 15:00:00 1970
+$time = $hours->first_after( 20 * 60 * 60);
+is($time, (20 * 60 * 60));
+
+# pick a date that's not during business hours
+my ($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime(0);
+$time = $hours->first_after( 0 );
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time);
+is($wday, $xwday+1);
+is($hour, 9);
+is($min, 0);
+is($sec, 0);
+
+=end testing
+
+=cut
+
+
+sub first_after {
+    my $self = shift;
+    my $start = shift;
+
+    # the maximum time after which we stop searching for business hours
+    my $MAXTIME = (30 * 24 * 60 * 60); # 30 days
+
+    my $period = (24 * 60 * 60);
+    my $end = $start + $period;
+    my $hours = new Set::IntSpan;
+
+    while (!$hours->first) {
+	if ($hours->last >= $start + $MAXTIME) {
+	    return -1;
+	}
+	$hours = $self->for_timespan(Start => $start, End => $end);
+	$start = $end;
+	$end = $start + $period;
+    } 
+
+    return $hours->first;
+
+}
+
+
+=head2 add_seconds START, SECONDS
+
+Returns a time SECONDS business seconds after START
+START should be specified in Seconds since the Epoch
+
+=begin testing
+
+use_ok  (Business::Hours);
+my $hours = Business::Hours->new();
+
+my ($start, $time, $span);
+# pick a date that's during business hours
+$start = (20 * 60 * 60);
+$time = $hours->add_seconds( $start, 30 * 60);
+$span = $hours->for_timespan(Start => $start, End => $time);
+
+# the first second is a business second, too
+is(cardinality $span, (30 * 60)+1);
+
+# pick a date that's not during business hours
+$start = 0;
+$time = $hours->add_seconds( $start, 30 * 60);
+$span = $hours->for_timespan(Start => $start, End => $time);
+
+# the first second is a business second, too
+is(cardinality $span, (30 * 60)+1);
+
+=end testing
+
+=cut
+
+
+sub add_seconds {
+    my $self = shift;
+    my $start = shift;
+    my $seconds = shift;
+
+    # the maximum time after which we stop searching for business hours
+    my $MAXTIME = (30 * 24 * 60 * 60); # 30 days
+
+    my $last;
+
+    my $period = (24 * 60 * 60);
+    my $end = $start + $period;
+
+    my $hours = new Set::IntSpan;
+    while (!$hours->last || $self->between($start, $hours->last) <= $seconds) {
+	if ($hours->last >= $start + $MAXTIME) {
+	    return -1;
+	}
+	$hours = $self->for_timespan(Start => $start, End => $end);
+	$end = $end + $period;
+    }
+
+    my @elements = elements $hours;
+    $last = $elements[$seconds];
+
+    return $last;
 
 }
 
