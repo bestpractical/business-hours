@@ -1,10 +1,21 @@
 Revision history for Perl module Business::Hours
 
+0.07 Fri Jul  8 11:44:39 EDT 2005
+  * Unembed tests  
+  * POD cleanup (and add pod tests)
+  * no longer an exporter that exports nothing 
+  * http://rt.cpan.org/Ticket/Display.html?id=13374:   
+	in certain time zones (try Guam, for example), the epoch   
+	is a business hour, which led to some tests being run with 
+	start hours of 0, which caught a few places in the code that   
+	were checking $hours->first when they should have been checking
+	defined $hours->first (or actually $hours->empty)  
+	
 0.03 April 1 2003
-        - fixed a bug in between
+- fixed a bug in between
 
 0.02 Feb 20 2003
-        - added "between" as a method, as well as a testsuite
+- added "between" as a method, as well as a testsuite
 
 0.01 Tue Feb 11 14:58:20 2003
 	- original version; created by ExtUtils::ModuleMaker 0.31229
