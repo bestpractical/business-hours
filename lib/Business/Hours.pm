@@ -6,25 +6,11 @@ use Set::IntSpan;
 
 use Time::Local qw/timelocal_nocheck/;
 
-BEGIN {
-	use Exporter ();
-	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.06;
-	@ISA         = qw (Exporter);
-	#Give a hoot don't pollute, do not export more than needed by default
-	@EXPORT      = qw ();
-	@EXPORT_OK   = qw ();
-	%EXPORT_TAGS = ();
-}
-
-
-########################################### main pod documentation begin ##
-# Below is the stub of documentation for your module. You better edit it!
-
+our $VERSION = 0.06;
 
 =head1 NAME
 
-Business::Hours - 
+Business::Hours - Calculate business hours in a time period
 
 =head1 SYNOPSIS
 
@@ -76,9 +62,6 @@ perl(1).
 
 =cut
 
-############################################# main pod documentation end ##
-
-
 # Default business hours are weekdays from 9 am to 6pm
 our $BUSINESS_HOURS = ({
         0 => { Name  => 'Sunday',
@@ -106,23 +89,11 @@ our $BUSINESS_HOURS = ({
 
 
 
-################################################ subroutine header begin ##
+=head2 new
 
-=head2 sample_function
-
- Usage     : How to use this function/method
- Purpose   : What it does
- Returns   : What it returns
- Argument  : What it wants to know
- Throws    : Exceptions and other anomolies
- Comments  : This is a sample subroutine header.
-           : It is polite to include more pod and fewer comments.
-
-See Also   : 
+Creates a new L<Business::Hours> object.  Takes no arguments.
 
 =cut
-
-################################################## subroutine header end ##
 
 
 sub new {
@@ -183,25 +154,6 @@ Takes a paramhash with the following parameters
 	End => The end of the period in question in seconds since the epoch
 
 Returns a Set::IntSpan of business hours for this period of time.
-
-
-=begin testing
-
-use_ok  (Business::Hours);
-my $hours = Business::Hours->new();
-is(ref($hours), 'Business::Hours');
-# how many business hours were there in the first week.
-my $hours_span = $hours->for_timespan(Start => '0', End => ( (86400 * 7)));
-is(ref($hours_span), 'Set::IntSpan');
-
-# Are there 45 working hours
-
-is(cardinality $hours_span, (45 * 60 * 60));
-
-
-
-
-=end testing
 
 =cut
 
@@ -370,50 +322,10 @@ sub between {
 
 =head2 first_after START
 
-Returns START if START is within business hours
-Otherwise, returns the next business second after START
-START should be specified in Seconds since the Epoch
-
-=begin testing
-
-use_ok  (Business::Hours);
-my $hours = Business::Hours->new();
-my $time;
-
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst);
-my $starttime;
-
-# pick a date that's during business hours
-$starttime = 0;
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
-while ($wday == 0  || $wday == 6) {
-    $starttime += ( 24 * 60 * 60);
-    ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
-}
-while ( $hour < 9 || $hour >= 18 ) {
-    $starttime += ( 4 * 60);
-    ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($starttime);
-}
-
-$time = $hours->first_after( $starttime );
-is($time, ( $starttime ));
-
-# pick a date that's not during business hours
-$starttime = 0;
-($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime($starttime);
-while ( $xwday != 0 ) {
-    $starttime += ( 24 * 60 * 60);
-    ($xsec,$xmin,$xhour,$xmday,$xmon,$xyear,$xwday,$xyday,$xisdst) = localtime($starttime);
-}
-
-$time = $hours->first_after( $starttime );
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time);
-is($wday, $xwday+1);
-is($hour, 9);
-is($min, 0);
-is($sec, 0);
-
-=end testing
+Returns START if START is within business hours.
+Otherwise, returns the next business second after START.
+START should be specified in Seconds since the Epoch.
+If it can't find any business hours within thirty days, returns -1.
 
 =cut
 
@@ -429,8 +341,8 @@ sub first_after {
     my $end = $start + $period;
     my $hours = new Set::IntSpan;
 
-    while (!$hours->first) {
-	if ($hours->last >= $start + $MAXTIME) {
+    while ($hours->empty) {
+	if ($end >= $start + $MAXTIME) {
 	    return -1;
 	}
 	$hours = $self->for_timespan(Start => $start, End => $end);
@@ -439,38 +351,14 @@ sub first_after {
     } 
 
     return $hours->first;
-
 }
 
 
 =head2 add_seconds START, SECONDS
 
-Returns a time SECONDS business seconds after START
-START should be specified in Seconds since the Epoch
-
-=begin testing
-
-use_ok  (Business::Hours);
-my $hours = Business::Hours->new();
-
-my ($start, $time, $span);
-# pick a date that's during business hours
-$start = (20 * 60 * 60);
-$time = $hours->add_seconds( $start, 30 * 60);
-$span = $hours->for_timespan(Start => $start, End => $time);
-
-# the first second is a business second, too
-is(cardinality $span, (30 * 60)+1);
-
-# pick a date that's not during business hours
-$start = 0;
-$time = $hours->add_seconds( $start, 30 * 60);
-$span = $hours->for_timespan(Start => $start, End => $time);
-
-# the first second is a business second, too
-is(cardinality $span, (30 * 60)+1);
-
-=end testing
+Returns a time SECONDS business seconds after START.
+START should be specified in Seconds since the Epoch.
+If it can't find any business hours within thirty days, returns -1.
 
 =cut
 
@@ -489,16 +377,13 @@ sub add_seconds {
     my $end = $start + $period;
 
     my $hours = new Set::IntSpan;
-    while (!$hours->last || $self->between($start, $hours->last) <= $seconds) {
-	if ($hours->last >= $start + $MAXTIME) {
+    while ($hours->empty or $self->between($start, $hours->last) <= $seconds) {
+	if ($end >= $start + $MAXTIME) {
 	    return -1;
 	}
 	$hours = $self->for_timespan(Start => $start, End => $end);
 
-        # if there's a problem, exit
-        return -1 if !$hours->last;
-
-	$end = $end + $period;
+	$end += $period;
     }
 
     my @elements = elements $hours;
@@ -511,5 +396,3 @@ sub add_seconds {
 
 
 1; #this line is important and will help the module return a true value
-__END__
-

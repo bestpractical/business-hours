@@ -1,8 +1,11 @@
-MANIFEST
-LICENSE
-README
-Todo
 Changes
 lib/Business/Hours.pm
+LICENSE
 Makefile.PL
+MANIFEST
 META.yml
+README
+t/1-business-hours.t
+t/99-pod-coverage.t
+t/99-pod.t
+Todo
