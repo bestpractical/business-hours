@@ -335,14 +335,14 @@ sub first_after {
     my $start = shift;
 
     # the maximum time after which we stop searching for business hours
-    my $MAXTIME = (30 * 24 * 60 * 60); # 30 days
+    my $MAXTIME = $start + (30 * 24 * 60 * 60); # 30 days
 
     my $period = (24 * 60 * 60);
     my $end = $start + $period;
     my $hours = new Set::IntSpan;
 
     while ($hours->empty) {
-	if ($end >= $start + $MAXTIME) {
+	if ($end >= $MAXTIME) {
 	    return -1;
 	}
 	$hours = $self->for_timespan(Start => $start, End => $end);
