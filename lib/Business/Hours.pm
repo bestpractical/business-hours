@@ -1,11 +1,13 @@
-package Business::Hours;
 use strict;
+use warnings;
+
+package Business::Hours;
+
 require 5.006;
 use Set::IntSpan;
-
 use Time::Local qw/timelocal_nocheck/;
 
-our $VERSION = 0.07;
+our $VERSION = 0.08;
 
 =head1 NAME
 
@@ -15,49 +17,18 @@ Business::Hours - Calculate business hours in a time period
 
   use Business::Hours;
   my $hours = Business::Hours->new();    
+
   # Get a Set::IntSpan of all the business hours in the next week.
   # use the default business hours of 9am to 6pm localtime.
-  $hours->business_hours_in_timespan(Start => time(), End => time()+(86400*7));
+  $hours->for_timespan( Start => time(), End => time()+(86400*7) );
 
 =head1 DESCRIPTION
 
 This module is a simple tool for calculating business hours in a time period. 
-Over time, additional functionality will be added to make it easy to calculate the number of
-business hours between arbitrary dates. 
-
+Over time, additional functionality will be added to make it easy to
+calculate the number of business hours between arbitrary dates. 
 
 =head1 USAGE
-
-
-
-=head1 BUGS
-
-Yes
-
-=head1 SUPPORT
-
-Send email  to bug-business-hours@rt.cpan.org
-
-
-=head1 AUTHOR
-
-    Jesse Vincent
-    Best Practical Solutions, LLC 
-    jesse@cpan.org
-    http://www.bestpractical.com
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-
-=head1 SEE ALSO
-
-perl(1).
 
 =cut
 
@@ -115,54 +86,62 @@ sub new {
     return ($self);
 }
 
-=head2 business_hours 
+=head2 business_hours HASH
 
-Set the business hours for this Business::Hours object.
-Takes a hash of the form :
+Gets / sets the business hours for this object.
+Takes a hash (NOT a hash reference) of the form:
 
-{
-    0 => { Name => 'Sunday',
-            Start => 'HH:MM',
-               End => 'HH:MM'},
+    my %hours = (
+        0 => { Name     => 'Sunday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM' },
 
-    1 => { Name => 'Monday',
-            Start => 'HH:MM',
-               End => 'HH:MM'},
-    ....
+        1 => { Name     => 'Monday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM' },
+        ....
 
-    6 => { Name => 'Saturday',
-            Start => 'HH:MM',
-               End => 'HH:MM'},
-    };
+        6 => { Name     => 'Saturday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM' },
+    );
 
-    Start and end times are of the form HH:MM.  Valid times are
-    from 00:00 to 23:59.  If your hours are from 9am to 6pm, use
-    Start => '9:00', End => '18:00'.  A given day MUST have a start
-    and end time OR may declare both Start and End to be undef, if
-    there are no valid hours on that day.
+Start and end times are of the form HH:MM.  Valid times are
+from 00:00 to 23:59.  If your hours are from 9am to 6pm, use
+Start => '9:00', End => '18:00'.  A given day MUST have a start
+and end time OR may declare both Start and End to be undef, if
+there are no valid hours on that day.
 
-    Note that the ending time is really "what is the first minute we're closed.
-    If you specifiy an "End" of 18:00, that means that at 6pm, you are closed.
-    The last business second was 17:59:59. 
-
-
+Note that the ending time is really "what is the first minute we're closed.
+If you specifiy an "End" of 18:00, that means that at 6pm, you are closed.
+The last business second was 17:59:59. 
 
 =cut
 
 sub business_hours {
     my $self = shift;
-    %{ $self->{'business_hours'} } = (@_);
-
+    %{ $self->{'business_hours'} } = (@_)
+        if @_;
+    return %{ $self->{'business_hours'} };
 }
 
-=head2 for_timespan
+=head2 for_timespan HASH
 
-Takes a paramhash with the following parameters
-	
-	Start => The start of the period in question in seconds since the epoch
-	End => The end of the period in question in seconds since the epoch
+Takes a hash with the following parameters:
 
-Returns a Set::IntSpan of business hours for this period of time.
+=over 12
+
+=item Start
+
+The start of the period in question in seconds since the epoch
+
+=item End
+
+The end of the period in question in seconds since the epoch
+
+=back
+
+Returns a L<Set::IntSpan> of business hours for this period of time.
 
 =cut
 
@@ -295,9 +274,9 @@ sub for_timespan {
 =head2 between START, END
 
 Returns the number of business seconds between START and END
-Both Start and End should be specified in Seconds since the Epoch
+Both START and END should be specified in seconds since the epoch.
 
-Returns -1 if Start or End is outside the calculated business hours
+Returns -1 if START or END are outside the calculated business hours.
 
 =cut
 
@@ -317,15 +296,15 @@ sub between {
     my $intersection = intersect $period $self->{'calculated'};
 
     return cardinality $intersection;
-
 }
 
 =head2 first_after START
 
 Returns START if START is within business hours.
 Otherwise, returns the next business second after START.
-START should be specified in Seconds since the Epoch.
-If it can't find any business hours within thirty days, returns -1.
+START should be specified in seconds since the epoch.
+
+Returns -1 if it can't find any business hours within thirty days.
 
 =cut
 
@@ -355,8 +334,9 @@ sub first_after {
 =head2 add_seconds START, SECONDS
 
 Returns a time SECONDS business seconds after START.
-START should be specified in Seconds since the Epoch.
-If it can't find any business hours within thirty days, returns -1.
+START should be specified in seconds since the epoch.
+
+Returns -1 if it can't find any business hours within thirty days.
 
 =cut
 
@@ -389,7 +369,27 @@ sub add_seconds {
     $last = $elements[$seconds];
 
     return $last;
-
 }
 
-1;    #this line is important and will help the module return a true value
+=head1 BUGS
+
+Yes, most likely.  Please report them to L<bug-business-hours@rt.cpan.org>.
+
+=head1 AUTHOR
+
+Jesse Vincent, L<jesse@cpan.org>
+
+=head1 COPYRIGHT
+
+Copyright 2003-2008 Best Practical Solutions, LLC.
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the LICENSE
+file included with this module.
+
+=cut
+
+1;
+
