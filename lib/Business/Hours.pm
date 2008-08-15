@@ -106,7 +106,7 @@ Takes a hash (NOT a hash reference) of the form:
                End      => 'HH:MM' },
     );
 
-Start and end times are of the form HH:MM.  Valid times are
+Start and End times are of the form HH:MM.  Valid times are
 from 00:00 to 23:59.  If your hours are from 9am to 6pm, use
 Start => '9:00', End => '18:00'.  A given day MUST have a start
 and end time OR may declare both Start and End to be undef, if
@@ -129,7 +129,7 @@ sub business_hours {
 
 Takes a hash with the following parameters:
 
-=over 12
+=over
 
 =item Start
 
