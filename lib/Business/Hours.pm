@@ -3,7 +3,6 @@ use strict;
 require 5.006;
 use Set::IntSpan;
 
-
 use Time::Local qw/timelocal_nocheck/;
 
 our $VERSION = 0.07;
@@ -63,31 +62,44 @@ perl(1).
 =cut
 
 # Default business hours are weekdays from 9 am to 6pm
-our $BUSINESS_HOURS = ({
-        0 => { Name  => 'Sunday',
-               Start => undef,
-               End   => undef, },
-        1 => { Name  => 'Monday',
-               Start => '9:00',
-               End   => '18:00', },
-        2 => { Name  => 'Tuesday',
-               Start => '9:00',
-               End   => '18:00', },
-        3 => { Name  => 'Wednesday',
-               Start => '9:00',
-               End   => '18:00', },
-        4 => { Name  => 'Thursday',
-               Start => '9:00',
-               End   => '18:00', },
-        5 => { Name  => 'Friday',
-               Start => '9:00',
-               End   => '18:00', },
-        6 => { Name  => 'Saturday',
-               Start => undef,
-               End   => undef, }
-      });
-
-
+our $BUSINESS_HOURS = (
+    {   0 => {
+            Name  => 'Sunday',
+            Start => undef,
+            End   => undef,
+        },
+        1 => {
+            Name  => 'Monday',
+            Start => '9:00',
+            End   => '18:00',
+        },
+        2 => {
+            Name  => 'Tuesday',
+            Start => '9:00',
+            End   => '18:00',
+        },
+        3 => {
+            Name  => 'Wednesday',
+            Start => '9:00',
+            End   => '18:00',
+        },
+        4 => {
+            Name  => 'Thursday',
+            Start => '9:00',
+            End   => '18:00',
+        },
+        5 => {
+            Name  => 'Friday',
+            Start => '9:00',
+            End   => '18:00',
+        },
+        6 => {
+            Name  => 'Saturday',
+            Start => undef,
+            End   => undef,
+        }
+    }
+);
 
 =head2 new
 
@@ -95,13 +107,12 @@ Creates a new L<Business::Hours> object.  Takes no arguments.
 
 =cut
 
-
 sub new {
-	my $class = shift;
+    my $class = shift;
 
-	my $self = bless ({}, ref ($class) || $class);
+    my $self = bless( {}, ref($class) || $class );
 
-	return ($self);
+    return ($self);
 }
 
 =head2 business_hours 
@@ -140,11 +151,9 @@ Takes a hash of the form :
 
 sub business_hours {
     my $self = shift;
-    %{$self->{'business_hours'}} = (@_);
+    %{ $self->{'business_hours'} } = (@_);
 
 }
-
-
 
 =head2 for_timespan
 
@@ -157,17 +166,17 @@ Returns a Set::IntSpan of business hours for this period of time.
 
 =cut
 
-
 sub for_timespan {
     my $self = shift;
-    my %args = ( Start => undef,
-                 End   => undef,
-                 @_ );
+    my %args = (
+        Start => undef,
+        End   => undef,
+        @_
+    );
     my $bizdays;
     if ( $self->{'business_hours'} ) {
         $bizdays = $self->{'business_hours'};
-    }
-    else {
+    } else {
         $bizdays = $BUSINESS_HOURS;
     }
 
@@ -175,8 +184,9 @@ sub for_timespan {
     foreach my $day ( keys %$bizdays ) {
         my $day_href = $bizdays->{$day};
         foreach my $which qw(Start End) {
-            if (    $day_href->{$which}
-                 && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ ) {
+            if (   $day_href->{$which}
+                && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
+            {
                 $day_href->{ $which . 'Hour' }   = $1;
                 $day_href->{ $which . 'Minute' } = $2;
             }
@@ -187,8 +197,8 @@ sub for_timespan {
     # we need to find all the business hours in the period in question.
 
     # Create an intspan of the period in total.
-    my $business_period =
-      Set::IntSpan->new( $args{'Start'} . "-" . $args{'End'} );
+    my $business_period
+        = Set::IntSpan->new( $args{'Start'} . "-" . $args{'End'} );
 
     # jump back to the first day (Sunday) of the last week before the period
     # began.
@@ -198,9 +208,8 @@ sub for_timespan {
     my $first_sunday = $start[3] - $start[6];
 
     # period_start is time_t at midnight local time on the first sunday
-    my $period_start =
-      timelocal_nocheck( 0, 0, 0, $first_sunday, $month, $year );
-
+    my $period_start
+        = timelocal_nocheck( 0, 0, 0, $first_sunday, $month, $year );
 
     # for each week until the end of the week in seconds since the epoch
     # is outside the business period in question
@@ -218,53 +227,51 @@ sub for_timespan {
 
         # foreach day in the week, find that day's business hours in
         # seconds since the epoch.
-        for ( my $dow=0; $dow <= 6; $dow++ ) {
+        for ( my $dow = 0; $dow <= 6; $dow++ ) {
 
             my $day_hours = $bizdays->{$dow};
             if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
-        
-        # add the business seconds in that week to the runlist we'll use to 
-        # figure out business hours
-        # (Be careful to use timelocal to convert times in the week into actual
-        # seconds, so we don't lose at DST transition)
-                my $day_bizhours_start = timelocal_nocheck(
-                                                 0,
-                                                 $day_hours->{'StartMinute'},
-                                                 $day_hours->{'StartHour'},
-                                                 ( $this_week_start[3] + $dow ),
-                                                 $this_week_start[4],
-                                                 $this_week_start[5] );
 
-                my $day_bizhours_end = timelocal_nocheck(0,
-                                                 $day_hours->{'EndMinute'},
-                                                 $day_hours->{'EndHour'},
-                                                 ( $this_week_start[3] + $dow ),
-                                                 $this_week_start[4],
-                                                 $this_week_start[5] );
+       # add the business seconds in that week to the runlist we'll use to
+       # figure out business hours
+       # (Be careful to use timelocal to convert times in the week into actual
+       # seconds, so we don't lose at DST transition)
+                my $day_bizhours_start = timelocal_nocheck(
+                    0,
+                    $day_hours->{'StartMinute'},
+                    $day_hours->{'StartHour'},
+                    ( $this_week_start[3] + $dow ),
+                    $this_week_start[4],
+                    $this_week_start[5]
+                );
+
+                my $day_bizhours_end = timelocal_nocheck(
+                    0, $day_hours->{'EndMinute'},
+                    $day_hours->{'EndHour'}, ( $this_week_start[3] + $dow ),
+                    $this_week_start[4], $this_week_start[5]
+                );
 
                 # We subtract 1 from the ending time, because the ending time
                 # really specifies what hour we end up closed at
                 $day_bizhours_end--;
 
-                push (@run_list , "$day_bizhours_start-$day_bizhours_end");
+                push( @run_list, "$day_bizhours_start-$day_bizhours_end" );
 
             }
 
-
         }
-        
 
-        # now that we're done with this week, calculate the start of the next week
-        # the next week starts at midnight on the sunday following the previous
-        # sunday
+    # now that we're done with this week, calculate the start of the next week
+    # the next week starts at midnight on the sunday following the previous
+    # sunday
         $week_start = timelocal_nocheck( 0, 0, 0, ( $this_week_start[3] + 7 ),
-                                     $this_week_start[4], $this_week_start[5] );
+            $this_week_start[4], $this_week_start[5] );
 
     }
 
-    my $business_hours = Set::IntSpan->new(join(',',@run_list));
-    my $business_hours_in_period = $business_hours->intersect($business_period);
-
+    my $business_hours = Set::IntSpan->new( join( ',', @run_list ) );
+    my $business_hours_in_period
+        = $business_hours->intersect($business_period);
 
     # find the intersection of the business period intspan and the  business
     # hours intspan. (Because we want to trim any business hours that fall
@@ -274,20 +281,16 @@ sub for_timespan {
 
     # TODO: Add any special times to the business hours
 
-
-
     # cache the calculated business hours in the object
-    $self->{'calculated'} =  $business_hours_in_period;
-    $self->{'start'} = $args{'Start'};
-    $self->{'end'} = $args{'End'};
-    # Return the intspan of business hours.
+    $self->{'calculated'} = $business_hours_in_period;
+    $self->{'start'}      = $args{'Start'};
+    $self->{'end'}        = $args{'End'};
 
-        
+    # Return the intspan of business hours.
 
     return ($business_hours_in_period);
 
 }
-
 
 =head2 between START, END
 
@@ -298,27 +301,24 @@ Returns -1 if Start or End is outside the calculated business hours
 
 =cut
 
-
 sub between {
-    my $self = shift;
+    my $self  = shift;
     my $start = shift;
-    my $end = shift;
+    my $end   = shift;
 
-    if ($start < $self->{'start'}) {
+    if ( $start < $self->{'start'} ) {
         return (-1);
-    } 
-    if ($end > $self->{'end'}) {
-        return(-1);
+    }
+    if ( $end > $self->{'end'} ) {
+        return (-1);
     }
 
-    my $period = Set::IntSpan->new($start."-".$end);
+    my $period       = Set::IntSpan->new( $start . "-" . $end );
     my $intersection = intersect $period $self->{'calculated'};
 
     return cardinality $intersection;
 
-
 }
-
 
 =head2 first_after START
 
@@ -329,30 +329,28 @@ If it can't find any business hours within thirty days, returns -1.
 
 =cut
 
-
 sub first_after {
-    my $self = shift;
+    my $self  = shift;
     my $start = shift;
 
     # the maximum time after which we stop searching for business hours
-    my $MAXTIME = $start + (30 * 24 * 60 * 60); # 30 days
+    my $MAXTIME = $start + ( 30 * 24 * 60 * 60 );    # 30 days
 
-    my $period = (24 * 60 * 60);
-    my $end = $start + $period;
-    my $hours = new Set::IntSpan;
+    my $period = ( 24 * 60 * 60 );
+    my $end    = $start + $period;
+    my $hours  = new Set::IntSpan;
 
-    while ($hours->empty) {
-	if ($end >= $MAXTIME) {
-	    return -1;
-	}
-	$hours = $self->for_timespan(Start => $start, End => $end);
-	$start = $end;
-	$end = $start + $period;
-    } 
+    while ( $hours->empty ) {
+        if ( $end >= $MAXTIME ) {
+            return -1;
+        }
+        $hours = $self->for_timespan( Start => $start, End => $end );
+        $start = $end;
+        $end   = $start + $period;
+    }
 
     return $hours->first;
 }
-
 
 =head2 add_seconds START, SECONDS
 
@@ -362,28 +360,29 @@ If it can't find any business hours within thirty days, returns -1.
 
 =cut
 
-
 sub add_seconds {
-    my $self = shift;
-    my $start = shift;
+    my $self    = shift;
+    my $start   = shift;
     my $seconds = shift;
 
     # the maximum time after which we stop searching for business hours
-    my $MAXTIME = (30 * 24 * 60 * 60); # 30 days
+    my $MAXTIME = ( 30 * 24 * 60 * 60 );    # 30 days
 
     my $last;
 
-    my $period = (24 * 60 * 60);
-    my $end = $start + $period;
+    my $period = ( 24 * 60 * 60 );
+    my $end    = $start + $period;
 
     my $hours = new Set::IntSpan;
-    while ($hours->empty or $self->between($start, $hours->last) <= $seconds) {
-	if ($end >= $start + $MAXTIME) {
-	    return -1;
-	}
-	$hours = $self->for_timespan(Start => $start, End => $end);
+    while ($hours->empty
+        or $self->between( $start, $hours->last ) <= $seconds )
+    {
+        if ( $end >= $start + $MAXTIME ) {
+            return -1;
+        }
+        $hours = $self->for_timespan( Start => $start, End => $end );
 
-	$end += $period;
+        $end += $period;
     }
 
     my @elements = elements $hours;
@@ -393,6 +392,4 @@ sub add_seconds {
 
 }
 
-
-
-1; #this line is important and will help the module return a true value
+1;    #this line is important and will help the module return a true value
