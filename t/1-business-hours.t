@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 11;
+use Test::More tests => 14;
 
 BEGIN { use_ok 'Business::Hours' }
 
@@ -16,6 +16,16 @@ BEGIN { use_ok 'Business::Hours' }
     is(cardinality $hours_span, (45 * 60 * 60));
 }
 
+{
+    my $hours = Business::Hours->new();
+    is(ref($hours), 'Business::Hours');
+    # how many business hours were there in the first week.
+    my $seconds = $hours->between( 0, ( (86400 * 7) - 1 ) );
+    ok( $seconds, "Got seconds" );
+
+    # Are there 45 working hours
+    is( $seconds, (45 * 60 * 60) );
+}
 
 {
     my $hours = Business::Hours->new();

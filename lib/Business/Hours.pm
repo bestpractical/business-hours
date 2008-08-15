@@ -285,6 +285,13 @@ sub between {
     my $start = shift;
     my $end   = shift;
 
+    if ( not defined $self->{'start'} or not defined $self->{'end'} ) {
+        # We haven't calculated our sets yet, so let's do that for the
+        # user now, assuming they want to use the same start and end
+        # times
+        $self->for_timespan( Start => $start, End => $end );
+    }
+
     if ( $start < $self->{'start'} ) {
         return (-1);
     }
