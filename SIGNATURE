@@ -1,12 +1,12 @@
 This file contains message digests of all files listed in MANIFEST,
-signed via the Module::Signature module, version 0.41.
+signed via the Module::Signature module, version 0.55.
 
 To verify the content in this distribution, first make sure you have
 Module::Signature installed, then type:
 
     % cpansign -v
 
-It would check each file's integrity, as well as the signature's
+It will check each file's integrity, as well as the signature's
 validity.  If "==> Signature verified OK! <==" is not displayed,
 the distribution may already have been compromised, and you should
 not run its Makefile.PL or Build.PL.
@@ -14,20 +14,20 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 c63b68708c494e76176ae7607b53d8b475e69c35 Changes
+SHA1 4431b315155eff267884c69ff1af0ee01cc2c2da Changes
 SHA1 f235ba4160673bcb7c9d58c2f09dbc7fc0efadea LICENSE
 SHA1 ca4c4b7a196a7ea1d907cf757dda78aa99bc11a4 MANIFEST
 SHA1 3f7f12e6e6f44992b29ee734d8883efd2875cc8b META.yml
 SHA1 bf565cd7d1f49956edaed8f89c6021c9ef4847b6 Makefile.PL
 SHA1 7e27ecbd2a455bf2ec9f91f1b8c29853a3663d62 README
-SHA1 164e7df1e35aa854f07a73688c2823faa71d42fd lib/Business/Hours.pm
-SHA1 1b2c1011cde625644c0ae346304a8b96549c356f t/1-business-hours.t
+SHA1 44c868f5785c02e7f6a39e36e840863680b88e6f lib/Business/Hours.pm
+SHA1 8a4f4d07f02e4bd1d7af913a05d67210a6a1e546 t/1-business-hours.t
 SHA1 e18498f5413cb08aa563e3d0c76a1d9c6520b8c5 t/99-pod-coverage.t
 SHA1 aaf51e0d68143ceff893513e9a95bd01cdfa216f t/99-pod.t
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
+Version: GnuPG v2.0.9 (GNU/Linux)
 
-iD8DBQFCzp/gEi9d9xCOQEYRAk0hAJ9FyGIBZ3DsFmaAgpzOikR0B4yrFQCgtXzi
-lH3ETd+s4y9mnzWmGWYVNFg=
-=3bhE
+iEYEARECAAYFAkip1lkACgkQMflWJZZAbqBi/QCfW/b0h/SBkE3tIorP1k7K6XQW
+sz0AoKc/CgOovbB0ZgApy7TziLaWjDks
+=TA8q
 -----END PGP SIGNATURE-----

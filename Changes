@@ -1,5 +1,13 @@
 Revision history for Perl module Business::Hours
 
+0.08 Mon Aug 18 16:06:33 EDT 2008
+  * Make between work even if the user hasn't called for_timespan yet
+    (which calculates our spans for us)
+  * Typo fixes, cleanup formatting and documentation some more
+  * $end >= $start + $MAXTIME never ends because we keep moving
+    $start and $end forward.  Calculate the 30 day drop date
+    before the loop.
+
 0.07 Fri Jul  8 11:44:39 EDT 2005
   * Unembed tests  
   * POD cleanup (and add pod tests)
