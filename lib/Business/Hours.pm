@@ -32,7 +32,7 @@ calculate the number of business hours between arbitrary dates.
 
 =cut
 
-# Default business hours are weekdays from 9 am to 6pm
+# Default business hours are weekdays from 9am to 6pm
 our $BUSINESS_HOURS = (
     {   0 => {
             Name  => 'Sunday',
@@ -120,9 +120,19 @@ The last business second was 17:59:59.
 
 sub business_hours {
     my $self = shift;
-    %{ $self->{'business_hours'} } = (@_)
-        if @_;
+    if ( @_ ) {
+        %{ $self->{'business_hours'} } = (@_);
+        $self->{'holidays'} = delete $self->{'business_hours'}{'holidays'};
+    }
     return %{ $self->{'business_hours'} };
+}
+
+sub holidays {
+    my $self = shift;
+    if ( @_ ) {
+        @{ $self->{'holidays'} } = (@_);
+    }
+    return @{ $self->{'holidays'} || [] };
 }
 
 =head2 for_timespan HASH
@@ -257,6 +267,31 @@ sub for_timespan {
     # outside the business period)
 
     # TODO: Remove any holidays from the business hours
+    if ( my @holidays = $self->holidays ) {
+        my $start_year = $year;
+        my $end_year = (localtime $args{'End'})[5];
+        foreach my $holiday (@holidays) {
+            my ($year, $month, $date) = ($holiday =~ /^(?:(\d\d\d\d)\D)?(\d\d)\D(\d\d)$/);
+            my @range;
+            if ( $year ) {
+                push @range, [
+                    timelocal_nocheck( 0, 0, 0, $date,   $month, $year ),
+                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $year ),
+                ];
+            }
+            else {
+                push @range, [
+                    timelocal_nocheck( 0, 0, 0, $date,   $month, $start_year ),
+                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $start_year ),
+                ];
+                push @range, [
+                    timelocal_nocheck( 0, 0, 0, $date,   $month, $end_year ),
+                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $end_year ),
+                ] if $start_year != $end_year;
+            }
+            $business_hours_in_period -= Set::IntSpan->new( @range );
+        }
+    }
 
     # TODO: Add any special times to the business hours
 
