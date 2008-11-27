@@ -272,24 +272,23 @@ sub for_timespan {
         my $end_year = (localtime $args{'End'})[5];
         foreach my $holiday (@holidays) {
             my ($year, $month, $date) = ($holiday =~ /^(?:(\d\d\d\d)\D)?(\d\d)\D(\d\d)$/);
+            $month--;
             my @range;
             if ( $year ) {
                 push @range, [
-                    timelocal_nocheck( 0, 0, 0, $date,   $month, $year ),
-                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $year ),
+                    timelocal_nocheck( 0, 0, 0, $date, $month, $year ),
                 ];
             }
             else {
                 push @range, [
-                    timelocal_nocheck( 0, 0, 0, $date,   $month, $start_year ),
-                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $start_year ),
+                    timelocal_nocheck( 0, 0, 0, $date, $month, $start_year ),
                 ];
                 push @range, [
-                    timelocal_nocheck( 0, 0, 0, $date,   $month, $end_year ),
-                    timelocal_nocheck( 0, 0, 0, $date+1, $month, $end_year ),
+                    timelocal_nocheck( 0, 0, 0, $date, $month, $end_year ),
                 ] if $start_year != $end_year;
             }
-            $business_hours_in_period -= Set::IntSpan->new( @range );
+            $_->[1] = $_->[0] + 24*60*60 foreach @range;
+            $business_hours_in_period -= \@range;
         }
     }
 
