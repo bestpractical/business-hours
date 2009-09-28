@@ -1,6 +1,6 @@
 Revision history for Perl module Business::Hours
 
-0.09_01
+0.09_02
   * Add support for "breaks" during business hours -- 
 		Joao Miguel Neves <joao.neves@intraneia.com>
 

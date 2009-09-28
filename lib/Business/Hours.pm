@@ -7,7 +7,7 @@ require 5.006;
 use Set::IntSpan;
 use Time::Local qw/timelocal_nocheck/;
 
-our $VERSION = '0.09_01';
+our $VERSION = '0.09_02';
 
 =head1 NAME
 
