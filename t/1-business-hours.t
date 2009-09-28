@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 17;
 
 BEGIN { use_ok 'Business::Hours' }
 
@@ -85,5 +85,84 @@ BEGIN { use_ok 'Business::Hours' }
 
     # the first second is a business second, too
     is(cardinality $span, (30 * 60)+1);
+}
+
+{
+    my %BUSINESS_HOURS = (
+			  0 => {
+			      Name  => 'Sunday',
+			      Start => undef,
+			      End   => undef,
+			  },
+			  1 => {
+			      Name  => 'Monday',	
+			      Start => '9:00',
+			      End   => '18:00',
+			      Breaks => [
+					 {
+					     Start => '13:00',
+					     End   => '14:00',
+					 },
+					 ],
+			  },
+			  2 => {
+			      Name  => 'Tuesday', 
+			      Start => '9:00',
+			      End   => '18:00',
+			      Breaks => [
+					 {
+					     Start => '13:00',
+					     End   => '14:00',
+					 },
+					 ],
+			  },
+			  3 => {
+			      Name  => 'Wednesday',
+			      Start => '9:00',
+			      End   => '18:00',
+			      Breaks => [
+					 {
+					     Start => '13:00',
+					     End   => '14:00',
+					 },
+					 ],
+			  },
+			  4 => {
+			      Name  => 'Thursday',
+			      Start => '9:00',
+			      End   => '18:00',
+			      Breaks => [
+					 {
+					     Start => '13:00',
+					     End   => '14:00',
+					 },
+					 ],
+			  },
+			  5 => {
+			      Name  => 'Friday',
+			      Start => '9:00',
+			      End   => '18:00',
+			      Breaks => [
+					 {
+					     Start => '13:00',
+					     End   => '14:00',
+					 },
+					 ],
+			  },
+			  6 => {
+			      Name  => 'Saturday',
+			      Start => undef,
+			      End   => undef,
+			  });
+    my $hours = Business::Hours->new();
+    $hours->business_hours(%BUSINESS_HOURS);
+    is(ref($hours), 'Business::Hours');
+    # how many business hours were there in the first week.
+    my $hours_span = $hours->for_timespan(Start => '0', End => ( (86400 * 7) - 1));
+    is(ref($hours_span), 'Set::IntSpan');
+
+    # Are there 40 working hours
+
+    is(cardinality $hours_span, (40 * 60 * 60));
 }
 

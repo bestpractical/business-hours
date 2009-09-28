@@ -7,7 +7,7 @@ require 5.006;
 use Set::IntSpan;
 use Time::Local qw/timelocal_nocheck/;
 
-our $VERSION = 0.09;
+our $VERSION = '0.09_01';
 
 =head1 NAME
 
@@ -112,6 +112,29 @@ Start => '9:00', End => '18:00'.  A given day MUST have a start
 and end time OR may declare both Start and End to be undef, if
 there are no valid hours on that day.
 
+You can use the array Breaks to mark interruptions between Start/End (for instance lunch hour). It's an array of periods, each with a Start and End time:
+
+    my %hours = (
+        0 => { Name     => 'Sunday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM',
+               Breaks  => [ 
+                             { Start    => 'HH:MM',
+                             End      => 'HH:MM' },
+                             { Start    => 'HH:MM',
+                             End      => 'HH:MM' },
+                           ],
+
+        1 => { Name     => 'Monday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM' },
+        ....
+
+        6 => { Name     => 'Saturday',
+               Start    => 'HH:MM',
+               End      => 'HH:MM' },
+    );
+
 Note that the ending time is really "what is the first minute we're closed.
 If you specifiy an "End" of 18:00, that means that at 6pm, you are closed.
 The last business second was 17:59:59.
@@ -202,6 +225,7 @@ sub for_timespan {
 
     # Split the Start and End times into hour/minute specifications
     foreach my $day ( keys %$bizdays ) {
+	# Kept for (retro)compatibility
         my $day_href = $bizdays->{$day};
         foreach my $which qw(Start End) {
             if (   $day_href->{$which}
@@ -211,6 +235,23 @@ sub for_timespan {
                 $day_href->{ $which . 'Minute' } = $2;
             }
         }
+	# Processing each period
+	if ($bizdays->{$day}->{'Breaks'}) {
+	    my $i = 0;
+	    for ($i = 0; $i < @{$bizdays->{$day}->{'Breaks'}}; $i++) {
+		if ($bizdays->{$day}->{'Breaks'}[$i]) {
+		    my $day_href = $bizdays->{$day}->{'Breaks'}[$i];
+		    foreach my $which qw(Start End) {
+			if (   $day_href->{$which}
+			       && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
+			{
+			    $day_href->{ $which . 'Hour' }   = $1;
+			    $day_href->{ $which . 'Minute' } = $2;
+			}
+		    }
+		}
+	    }
+	}
     }
 
     # now that we know what the business hours are for each day in a week,
@@ -240,6 +281,12 @@ sub for_timespan {
     # For documentation about its format, have a look at Set::IntSpan.
     # (This is fed into Set::IntSpan to use to compute our actual run.
     my @run_list;
+
+    # @break_list is a run list of the period's breaks between business hours
+    # its form is (<int>-<int2>,<int3>-<int4>)
+    # For documentation about its format, have a look at Set::IntSpan.
+    # (This is fed into Set::IntSpan to use to compute our actual run.
+    my @break_list;
 
     while ( $week_start <= $args{'End'} ) {
 
@@ -274,11 +321,44 @@ sub for_timespan {
                 # We subtract 1 from the ending time, because the ending time
                 # really specifies what hour we end up closed at
                 $day_bizhours_end--;
-
+		
                 push( @run_list, "$day_bizhours_start-$day_bizhours_end" );
-
+		
             }
+	    
+	    if ($bizdays->{$dow}->{'Breaks'}) {
+		my $i = 0;
+		for ($i = 0; $i < @{$bizdays->{$dow}->{'Breaks'}}; $i++) {
+		    my $day_hours = $bizdays->{$dow}->{'Breaks'}[$i];
+		    if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
+			
+			# add the business seconds in that week to the runlist we'll use to
+			# figure out business hours
+			# (Be careful to use timelocal to convert times in the week into actual
+			# seconds, so we don't lose at DST transition)
+			my $day_bizhours_start = timelocal_nocheck(
+			    0,
+			    $day_hours->{'StartMinute'},
+                            $day_hours->{'StartHour'},
+                            ( $this_week_start[3] + $dow ),
+                            $this_week_start[4],
+                            $this_week_start[5]
+                        );
 
+                        my $day_bizhours_end = timelocal_nocheck(
+                            0, $day_hours->{'EndMinute'},
+                            $day_hours->{'EndHour'}, ( $this_week_start[3] + $dow ),
+                            $this_week_start[4], $this_week_start[5]
+                        );
+
+                        # We subtract 1 from the ending time, because the ending time
+                        # really specifies what hour we end up closed at
+                        $day_bizhours_end--;
+
+			push( @break_list, "$day_bizhours_start-$day_bizhours_end" );
+		    }
+                }
+	    }
         }
 
     # now that we're done with this week, calculate the start of the next week
@@ -289,7 +369,7 @@ sub for_timespan {
 
     }
 
-    my $business_hours = Set::IntSpan->new( join( ',', @run_list ) );
+    my $business_hours = Set::IntSpan->new( join( ',', @run_list ) ) - Set::IntSpan->new( join( ',', @break_list ) );
     my $business_hours_in_period
         = $business_hours->intersect($business_period);
 

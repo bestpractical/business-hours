@@ -1,5 +1,8 @@
 Revision history for Perl module Business::Hours
 
+  * Add support for "breaks" during business hours -- 
+		Joao Miguel Neves <joao.neves@intraneia.com>
+
 0.09 Fri Nov 28 01:46:33 MSK 2008
   * add support for holidays
 
