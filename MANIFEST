@@ -3,6 +3,7 @@ lib/Business/Hours.pm
 LICENSE
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
 META.yml
 README
 SIGNATURE
