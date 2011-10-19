@@ -227,7 +227,7 @@ sub for_timespan {
     foreach my $day ( keys %$bizdays ) {
 	# Kept for (retro)compatibility
         my $day_href = $bizdays->{$day};
-        foreach my $which qw(Start End) {
+        foreach my $which (qw(Start End)) {
             if (   $day_href->{$which}
                 && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
             {
@@ -241,7 +241,7 @@ sub for_timespan {
 	    for ($i = 0; $i < @{$bizdays->{$day}->{'Breaks'}}; $i++) {
 		if ($bizdays->{$day}->{'Breaks'}[$i]) {
 		    my $day_href = $bizdays->{$day}->{'Breaks'}[$i];
-		    foreach my $which qw(Start End) {
+		    foreach my $which (qw(Start End)) {
 			if (   $day_href->{$which}
 			       && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
 			{
