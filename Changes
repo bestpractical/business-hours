@@ -1,5 +1,8 @@
 Revision history for Perl module Business::Hours
 
+0.10
+  * perl 5.14 compatibility
+
 0.09_02
   * Add support for "breaks" during business hours -- 
 		Joao Miguel Neves <joao.neves@intraneia.com>
