@@ -275,11 +275,13 @@ sub for_timespan {
 
     while ( $week_start <= $args{'End'} ) {
 
-        my @this_week_start = localtime($week_start);
+        my @today = (localtime($week_start))[3, 4, 5];
+        $today[0]--; # compensate next increment
 
         # foreach day in the week, find that day's business hours in
         # seconds since the epoch.
         for ( my $dow = 0; $dow <= 6; $dow++ ) {
+            $today[0]++; # next day comes
 
             my $day_hours = $bizdays->{$dow};
             if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
@@ -289,13 +291,11 @@ sub for_timespan {
        # (Be careful to use timelocal to convert times in the week into actual
        # seconds, so we don't lose at DST transition)
                 my $day_bizhours_start = timelocal_nocheck(
-                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'},
-                    $this_week_start[3] + $dow, $this_week_start[4], $this_week_start[5]
+                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'}, @today
                 );
 
                 my $day_bizhours_end = timelocal_nocheck(
-                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'},
-                    $this_week_start[3] + $dow, $this_week_start[4], $this_week_start[5]
+                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'}, @today
                 );
 
                 # We subtract 1 from the ending time, because the ending time
@@ -313,13 +313,11 @@ sub for_timespan {
                 # (Be careful to use timelocal to convert times in the week into actual
                 # seconds, so we don't lose at DST transition)
                 my $day_bizhours_start = timelocal_nocheck(
-                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'},
-                    $this_week_start[3] + $dow, $this_week_start[4], $this_week_start[5]
+                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'}, @today
                 );
 
                 my $day_bizhours_end = timelocal_nocheck(
-                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'}, 
-                    $this_week_start[3] + $dow, $this_week_start[4], $this_week_start[5]
+                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'}, @today
                 );
 
                 # We subtract 1 from the ending time, because the ending time
@@ -334,8 +332,7 @@ sub for_timespan {
     # now that we're done with this week, calculate the start of the next week
     # the next week starts at midnight on the sunday following the previous
     # sunday
-        $week_start = timelocal_nocheck( 0, 0, 0, ( $this_week_start[3] + 7 ),
-            $this_week_start[4], $this_week_start[5] );
+        $week_start = timelocal_nocheck( 0, 0, 0, $today[0]+1, $today[1], $today[2] );
 
     }
 
