@@ -225,7 +225,7 @@ sub for_timespan {
 
     # Split the Start and End times into hour/minute specifications
     foreach my $day ( keys %$bizdays ) {
-	# Kept for (retro)compatibility
+        # Kept for (retro)compatibility
         my $day_href = $bizdays->{$day};
         foreach my $which (qw(Start End)) {
             if (   $day_href->{$which}
@@ -235,23 +235,23 @@ sub for_timespan {
                 $day_href->{ $which . 'Minute' } = $2;
             }
         }
-	# Processing each period
-	if ($bizdays->{$day}->{'Breaks'}) {
-	    my $i = 0;
-	    for ($i = 0; $i < @{$bizdays->{$day}->{'Breaks'}}; $i++) {
-		if ($bizdays->{$day}->{'Breaks'}[$i]) {
-		    my $day_href = $bizdays->{$day}->{'Breaks'}[$i];
-		    foreach my $which (qw(Start End)) {
-			if (   $day_href->{$which}
-			       && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
-			{
-			    $day_href->{ $which . 'Hour' }   = $1;
-			    $day_href->{ $which . 'Minute' } = $2;
-			}
-		    }
-		}
-	    }
-	}
+        # Processing each period
+        if ($bizdays->{$day}->{'Breaks'}) {
+            my $i = 0;
+            for ($i = 0; $i < @{$bizdays->{$day}->{'Breaks'}}; $i++) {
+                if ($bizdays->{$day}->{'Breaks'}[$i]) {
+                    my $day_href = $bizdays->{$day}->{'Breaks'}[$i];
+                    foreach my $which (qw(Start End)) {
+                        if (   $day_href->{$which}
+                               && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
+                        {
+                            $day_href->{ $which . 'Hour' }   = $1;
+                            $day_href->{ $which . 'Minute' } = $2;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     # now that we know what the business hours are for each day in a week,
@@ -321,24 +321,24 @@ sub for_timespan {
                 # We subtract 1 from the ending time, because the ending time
                 # really specifies what hour we end up closed at
                 $day_bizhours_end--;
-		
+                
                 push( @run_list, "$day_bizhours_start-$day_bizhours_end" );
-		
+                
             }
-	    
-	    if ($bizdays->{$dow}->{'Breaks'}) {
-		my $i = 0;
-		for ($i = 0; $i < @{$bizdays->{$dow}->{'Breaks'}}; $i++) {
-		    my $day_hours = $bizdays->{$dow}->{'Breaks'}[$i];
-		    if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
-			
-			# add the business seconds in that week to the runlist we'll use to
-			# figure out business hours
-			# (Be careful to use timelocal to convert times in the week into actual
-			# seconds, so we don't lose at DST transition)
-			my $day_bizhours_start = timelocal_nocheck(
-			    0,
-			    $day_hours->{'StartMinute'},
+            
+            if ($bizdays->{$dow}->{'Breaks'}) {
+                my $i = 0;
+                for ($i = 0; $i < @{$bizdays->{$dow}->{'Breaks'}}; $i++) {
+                    my $day_hours = $bizdays->{$dow}->{'Breaks'}[$i];
+                    if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
+                        
+                        # add the business seconds in that week to the runlist we'll use to
+                        # figure out business hours
+                        # (Be careful to use timelocal to convert times in the week into actual
+                        # seconds, so we don't lose at DST transition)
+                        my $day_bizhours_start = timelocal_nocheck(
+                            0,
+                            $day_hours->{'StartMinute'},
                             $day_hours->{'StartHour'},
                             ( $this_week_start[3] + $dow ),
                             $this_week_start[4],
@@ -355,10 +355,10 @@ sub for_timespan {
                         # really specifies what hour we end up closed at
                         $day_bizhours_end--;
 
-			push( @break_list, "$day_bizhours_start-$day_bizhours_end" );
-		    }
+                        push( @break_list, "$day_bizhours_start-$day_bizhours_end" );
+                    }
                 }
-	    }
+            }
         }
 
     # now that we're done with this week, calculate the start of the next week
