@@ -187,6 +187,9 @@ sub preprocess_business_hours {
             $span->{ $which . 'Hour' }   = $1;
             $span->{ $which . 'Minute' } = $2;
         }
+        $span->{'EndHour'} += 24
+            if $span->{'EndHour'}*60+$span->{'EndMinute'}
+            <= $span->{'StartHour'}*60+$span->{'StartMinute'};
         return 1;
     };
 
