@@ -71,6 +71,7 @@ our $BUSINESS_HOURS = (
         }
     }
 );
+__PACKAGE__->preprocess_business_hours( $BUSINESS_HOURS );
 
 =head2 new
 
@@ -163,8 +164,48 @@ sub business_hours {
     if ( @_ ) {
         %{ $self->{'business_hours'} } = (@_);
         $self->{'holidays'} = delete $self->{'business_hours'}{'holidays'};
+        $self->preprocess_business_hours( $self->{'business_hours'} );
     }
     return %{ $self->{'business_hours'} };
+}
+
+=head2 preprocess_business_hours
+
+Checks and transforms business hours data. No need to call it.
+
+=cut
+
+sub preprocess_business_hours {
+    my $self = shift;
+    my $bizdays = shift;
+
+    my $process_start_end = sub {
+        my $span = shift;
+        foreach my $which (qw(Start End)) {
+            return 0 unless $span->{ $which } && $span->{ $which } =~ /^(\d+)\D(\d+)$/;
+
+            $span->{ $which . 'Hour' }   = $1;
+            $span->{ $which . 'Minute' } = $2;
+        }
+        return 1;
+    };
+
+    # Split the Start and End times into hour/minute specifications
+    foreach my $dow ( keys %$bizdays ) {
+        unless (
+            $bizdays->{ $dow } && ref($bizdays->{ $dow }) eq 'HASH'
+            && $process_start_end->( $bizdays->{ $dow } )
+        ) {
+            delete $bizdays->{ $dow };
+            next;
+        }
+
+        foreach my $break ( splice @{ $bizdays->{ $dow }{'Breaks'} || [] } ) {
+            next unless $break && ref($break) eq 'HASH';
+            push @{ $bizdays->{ $dow }{'Breaks'} }, $break
+                if $process_start_end->( $break );
+        }
+    }
 }
 
 =head2 holidays ARRAY
@@ -217,27 +258,6 @@ sub for_timespan {
         @_
     );
     my $bizdays = $self->{'business_hours'} || $BUSINESS_HOURS;
-
-    # Split the Start and End times into hour/minute specifications
-    foreach my $day ( values %$bizdays ) {
-        foreach my $which (qw(Start End)) {
-            next unless $day->{ $which } && $day->{ $which } =~ /^(\d+)\D(\d+)$/;
-
-            $day->{ $which . 'Hour' }   = $1;
-            $day->{ $which . 'Minute' } = $2;
-        }
-        # Processing each period
-        if ( $day->{'Breaks'} ) {
-            foreach my $break ( grep $_, @{ $day->{'Breaks'} } ) {
-                foreach my $which (qw(Start End)) {
-                    next unless $break->{ $which } && $break->{ $which } =~ /^(\d+)\D(\d+)$/;
-
-                    $break->{ $which . 'Hour' }   = $1;
-                    $break->{ $which . 'Minute' } = $2;
-                }
-            }
-        }
-    }
 
     # now that we know what the business hours are for each day in a week,
     # we need to find all the business hours in the period in question.
