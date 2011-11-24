@@ -293,6 +293,26 @@ sub for_timespan {
     # (This is fed into Set::IntSpan to use to compute our actual run.
     my @break_list;
 
+    my $convert_start_end = sub {
+        my ($hours, @today) = @_;
+
+        # add the business seconds in that week to the runlist we'll use to
+        # figure out business hours
+        # (Be careful to use timelocal to convert times in the week into actual
+        # seconds, so we don't lose at DST transition)
+        my $start = timelocal_nocheck(
+            0, $hours->{'StartMinute'}, $hours->{'StartHour'}, @today
+        );
+
+        # We subtract 1 from the ending time, because the ending time
+        # really specifies what hour we end up closed at
+        my $end = timelocal_nocheck(
+            0, $hours->{'EndMinute'}, $hours->{'EndHour'}, @today
+        ) - 1;
+
+        return "$start-$end";
+    };
+
     while ( $week_start <= $args{'End'} ) {
 
         my @today = (localtime($week_start))[3, 4, 5];
@@ -302,50 +322,12 @@ sub for_timespan {
         # seconds since the epoch.
         for ( my $dow = 0; $dow <= 6; $dow++ ) {
             $today[0]++; # next day comes
+            next unless my $day_hours = $bizdays->{$dow};
 
-            my $day_hours = $bizdays->{$dow};
-            if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
+            push @run_list, $convert_start_end->( $day_hours, @today );
 
-       # add the business seconds in that week to the runlist we'll use to
-       # figure out business hours
-       # (Be careful to use timelocal to convert times in the week into actual
-       # seconds, so we don't lose at DST transition)
-                my $day_bizhours_start = timelocal_nocheck(
-                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'}, @today
-                );
-
-                my $day_bizhours_end = timelocal_nocheck(
-                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'}, @today
-                );
-
-                # We subtract 1 from the ending time, because the ending time
-                # really specifies what hour we end up closed at
-                $day_bizhours_end--;
-
-                push( @run_list, "$day_bizhours_start-$day_bizhours_end" );
-            }
-
-            foreach my $day_hours ( @{ $bizdays->{$dow}{'Breaks'} || [] } ) {
-                next unless $day_hours->{'Start'} && $day_hours->{'End'};
-
-                # add the business seconds in that week to the runlist we'll use to
-                # figure out business hours
-                # (Be careful to use timelocal to convert times in the week into actual
-                # seconds, so we don't lose at DST transition)
-                my $day_bizhours_start = timelocal_nocheck(
-                    0, $day_hours->{'StartMinute'}, $day_hours->{'StartHour'}, @today
-                );
-
-                my $day_bizhours_end = timelocal_nocheck(
-                    0, $day_hours->{'EndMinute'}, $day_hours->{'EndHour'}, @today
-                );
-
-                # We subtract 1 from the ending time, because the ending time
-                # really specifies what hour we end up closed at
-                $day_bizhours_end--;
-
-                push( @break_list, "$day_bizhours_start-$day_bizhours_end" );
-
+            foreach my $break ( @{ $bizdays->{$dow}{'Breaks'} || [] } ) {
+                push @break_list, $convert_start_end->( $break, @today );
             }
         }
 
