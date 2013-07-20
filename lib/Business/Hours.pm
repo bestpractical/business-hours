@@ -154,7 +154,7 @@ an array reference value, for example:
         holidays => [qw(01-01 12-25 2009-05-08)],
     );
 
-Read more about holidays specification below in L</"holidays ARRAY"|holidays>.
+Read more about holidays specification below in L<holidays|/"holidays ARRAY">.
 
 =cut
 
@@ -176,7 +176,7 @@ Specification with year defined may be required when a holiday
 matches Sunday or Saturday. In many countries days are shifted
 in such case.
 
-Holidays can be set via L</"business_hours HASH"|business_hours> method
+Holidays can be set via L<business_hours|/"business_hours HASH"> method
 as well, so you can use this feature without changing your code.
 
 =cut
