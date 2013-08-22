@@ -1,7 +1,13 @@
 Revision history for Perl module Business::Hours
 
+0.12
+  * merge of 0.11 and 0.10_01:
+  ** support shifts over midnight
+  ** code refactoring
+
 0.11
   * POD fixes
+  * changes from 0.10_01 were skipped
 
 0.10_01
   * support shifts over midnight, for example:
