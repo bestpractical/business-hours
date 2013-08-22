@@ -19,4 +19,5 @@ no_index:
     - inc
 requires:
   Set::IntSpan: 1.12
+  Time::Local: 0
 version: 0.11

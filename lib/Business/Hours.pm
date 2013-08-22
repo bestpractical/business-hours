@@ -71,6 +71,7 @@ our $BUSINESS_HOURS = (
         }
     }
 );
+__PACKAGE__->preprocess_business_hours( $BUSINESS_HOURS );
 
 =head2 new
 
@@ -163,8 +164,51 @@ sub business_hours {
     if ( @_ ) {
         %{ $self->{'business_hours'} } = (@_);
         $self->{'holidays'} = delete $self->{'business_hours'}{'holidays'};
+        $self->preprocess_business_hours( $self->{'business_hours'} );
     }
     return %{ $self->{'business_hours'} };
+}
+
+=head2 preprocess_business_hours
+
+Checks and transforms business hours data. No need to call it.
+
+=cut
+
+sub preprocess_business_hours {
+    my $self = shift;
+    my $bizdays = shift;
+
+    my $process_start_end = sub {
+        my $span = shift;
+        foreach my $which (qw(Start End)) {
+            return 0 unless $span->{ $which } && $span->{ $which } =~ /^(\d+)\D(\d+)$/;
+
+            $span->{ $which . 'Hour' }   = $1;
+            $span->{ $which . 'Minute' } = $2;
+        }
+        $span->{'EndHour'} += 24
+            if $span->{'EndHour'}*60+$span->{'EndMinute'}
+            <= $span->{'StartHour'}*60+$span->{'StartMinute'};
+        return 1;
+    };
+
+    # Split the Start and End times into hour/minute specifications
+    foreach my $dow ( keys %$bizdays ) {
+        unless (
+            $bizdays->{ $dow } && ref($bizdays->{ $dow }) eq 'HASH'
+            && $process_start_end->( $bizdays->{ $dow } )
+        ) {
+            delete $bizdays->{ $dow };
+            next;
+        }
+
+        foreach my $break ( splice @{ $bizdays->{ $dow }{'Breaks'} || [] } ) {
+            next unless $break && ref($break) eq 'HASH';
+            push @{ $bizdays->{ $dow }{'Breaks'} }, $break
+                if $process_start_end->( $break );
+        }
+    }
 }
 
 =head2 holidays ARRAY
@@ -216,43 +260,7 @@ sub for_timespan {
         End   => undef,
         @_
     );
-    my $bizdays;
-    if ( $self->{'business_hours'} ) {
-        $bizdays = $self->{'business_hours'};
-    } else {
-        $bizdays = $BUSINESS_HOURS;
-    }
-
-    # Split the Start and End times into hour/minute specifications
-    foreach my $day ( keys %$bizdays ) {
-	# Kept for (retro)compatibility
-        my $day_href = $bizdays->{$day};
-        foreach my $which (qw(Start End)) {
-            if (   $day_href->{$which}
-                && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
-            {
-                $day_href->{ $which . 'Hour' }   = $1;
-                $day_href->{ $which . 'Minute' } = $2;
-            }
-        }
-	# Processing each period
-	if ($bizdays->{$day}->{'Breaks'}) {
-	    my $i = 0;
-	    for ($i = 0; $i < @{$bizdays->{$day}->{'Breaks'}}; $i++) {
-		if ($bizdays->{$day}->{'Breaks'}[$i]) {
-		    my $day_href = $bizdays->{$day}->{'Breaks'}[$i];
-		    foreach my $which (qw(Start End)) {
-			if (   $day_href->{$which}
-			       && $day_href->{$which} =~ /^(\d+)\D(\d+)$/ )
-			{
-			    $day_href->{ $which . 'Hour' }   = $1;
-			    $day_href->{ $which . 'Minute' } = $2;
-			}
-		    }
-		}
-	    }
-	}
-    }
+    my $bizdays = $self->{'business_hours'} || $BUSINESS_HOURS;
 
     # now that we know what the business hours are for each day in a week,
     # we need to find all the business hours in the period in question.
@@ -288,84 +296,48 @@ sub for_timespan {
     # (This is fed into Set::IntSpan to use to compute our actual run.
     my @break_list;
 
+    my $convert_start_end = sub {
+        my ($hours, @today) = @_;
+
+        # add the business seconds in that week to the runlist we'll use to
+        # figure out business hours
+        # (Be careful to use timelocal to convert times in the week into actual
+        # seconds, so we don't lose at DST transition)
+        my $start = timelocal_nocheck(
+            0, $hours->{'StartMinute'}, $hours->{'StartHour'}, @today
+        );
+
+        # We subtract 1 from the ending time, because the ending time
+        # really specifies what hour we end up closed at
+        my $end = timelocal_nocheck(
+            0, $hours->{'EndMinute'}, $hours->{'EndHour'}, @today
+        ) - 1;
+
+        return "$start-$end";
+    };
+
     while ( $week_start <= $args{'End'} ) {
 
-        my @this_week_start = localtime($week_start);
+        my @today = (localtime($week_start))[3, 4, 5];
+        $today[0]--; # compensate next increment
 
         # foreach day in the week, find that day's business hours in
         # seconds since the epoch.
         for ( my $dow = 0; $dow <= 6; $dow++ ) {
+            $today[0]++; # next day comes
+            next unless my $day_hours = $bizdays->{$dow};
 
-            my $day_hours = $bizdays->{$dow};
-            if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
+            push @run_list, $convert_start_end->( $day_hours, @today );
 
-       # add the business seconds in that week to the runlist we'll use to
-       # figure out business hours
-       # (Be careful to use timelocal to convert times in the week into actual
-       # seconds, so we don't lose at DST transition)
-                my $day_bizhours_start = timelocal_nocheck(
-                    0,
-                    $day_hours->{'StartMinute'},
-                    $day_hours->{'StartHour'},
-                    ( $this_week_start[3] + $dow ),
-                    $this_week_start[4],
-                    $this_week_start[5]
-                );
-
-                my $day_bizhours_end = timelocal_nocheck(
-                    0, $day_hours->{'EndMinute'},
-                    $day_hours->{'EndHour'}, ( $this_week_start[3] + $dow ),
-                    $this_week_start[4], $this_week_start[5]
-                );
-
-                # We subtract 1 from the ending time, because the ending time
-                # really specifies what hour we end up closed at
-                $day_bizhours_end--;
-		
-                push( @run_list, "$day_bizhours_start-$day_bizhours_end" );
-		
+            foreach my $break ( @{ $bizdays->{$dow}{'Breaks'} || [] } ) {
+                push @break_list, $convert_start_end->( $break, @today );
             }
-	    
-	    if ($bizdays->{$dow}->{'Breaks'}) {
-		my $i = 0;
-		for ($i = 0; $i < @{$bizdays->{$dow}->{'Breaks'}}; $i++) {
-		    my $day_hours = $bizdays->{$dow}->{'Breaks'}[$i];
-		    if ( $day_hours->{'Start'} && $day_hours->{'End'} ) {
-			
-			# add the business seconds in that week to the runlist we'll use to
-			# figure out business hours
-			# (Be careful to use timelocal to convert times in the week into actual
-			# seconds, so we don't lose at DST transition)
-			my $day_bizhours_start = timelocal_nocheck(
-			    0,
-			    $day_hours->{'StartMinute'},
-                            $day_hours->{'StartHour'},
-                            ( $this_week_start[3] + $dow ),
-                            $this_week_start[4],
-                            $this_week_start[5]
-                        );
-
-                        my $day_bizhours_end = timelocal_nocheck(
-                            0, $day_hours->{'EndMinute'},
-                            $day_hours->{'EndHour'}, ( $this_week_start[3] + $dow ),
-                            $this_week_start[4], $this_week_start[5]
-                        );
-
-                        # We subtract 1 from the ending time, because the ending time
-                        # really specifies what hour we end up closed at
-                        $day_bizhours_end--;
-
-			push( @break_list, "$day_bizhours_start-$day_bizhours_end" );
-		    }
-                }
-	    }
         }
 
     # now that we're done with this week, calculate the start of the next week
     # the next week starts at midnight on the sunday following the previous
     # sunday
-        $week_start = timelocal_nocheck( 0, 0, 0, ( $this_week_start[3] + 7 ),
-            $this_week_start[4], $this_week_start[5] );
+        $week_start = timelocal_nocheck( 0, 0, 0, $today[0]+1, $today[1], $today[2] );
 
     }
 

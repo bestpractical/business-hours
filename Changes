@@ -3,6 +3,10 @@ Revision history for Perl module Business::Hours
 0.11
   * POD fixes
 
+0.10_01
+  * support shifts over midnight, for example:
+  { Start => '18:00', End => '02:00' }
+
 0.10
   * perl 5.14 compatibility
 
