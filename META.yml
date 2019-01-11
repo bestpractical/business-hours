@@ -20,4 +20,4 @@ no_index:
 requires:
   Set::IntSpan: 1.12
   Time::Local: 0
-version: 0.12
+version: 0.13
